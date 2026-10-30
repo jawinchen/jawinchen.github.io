@@ -1,0 +1,23 @@
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {SITE_CONFIG,highVoltageX,transformerX,lowVoltageX,firstBessX,bessStep,lastBessX,sceneCenterX} from './config.js';
+import {createEnvironment} from './environment.js';
+import {createEquipment} from './equipment.js';
+import {bindControls} from './controls.js';
+
+const root=document.getElementById('scene');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xa9d4f6);scene.fog=new THREE.Fog(0xa9d4f6,65,180);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,280);camera.position.set(sceneCenterX,18,56);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.42;root.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xe3f3ff,0x8b956a,2.25));const sun=new THREE.DirectionalLight(0xffffff,3.35);sun.position.set(-28,34,20);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-90;sun.shadow.camera.right=90;sun.shadow.camera.top=70;sun.shadow.camera.bottom=-70;sun.shadow.bias=-.00015;scene.add(sun);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(sceneCenterX,3.4,0);controls.enableDamping=true;controls.dampingFactor=.075;controls.minDistance=12;controls.maxDistance=180;controls.maxPolarAngle=Math.PI/2.02;controls.update();
+const material=(color,metalness=0,roughness=.8)=>new THREE.MeshStandardMaterial({color,metalness,roughness});
+const materials={concrete:material(0xbec6ca),white:material(0xeceff0,.08,.58),trim:material(0x5c6e77,.34,.56),dark:material(0x253742,.38,.6),vent:material(0x8a999d,.18,.86),skyMetal:material(0x97aeb7,.6,.4),cyan:material(0x03a9b5,.26,.4),windowMat:material(0x273843,.46,.26),grass:material(0x6f8d59),soil:material(0x8f8d79),beige:material(0xded8c8,.08,.78),transformerBody:material(0x335c5c,.25,.6),transformerDark:material(0x234646,.35,.55),gravel:material(0x8d8a7f,.1,.95),curb:material(0xcdd1cf),accentYellow:material(0xe0c22e),redWire:material(0xb84b49,.12,.8)};
+const box=(w,h,d,mat,x,y,z,parent=scene,shadow=true)=>{const object=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);object.position.set(x,y,z);object.castShadow=shadow;object.receiveShadow=true;parent.add(object);return object};
+const cylinder=(rt,rb,h,seg,mat,x,y,z,parent=scene,rotX=0,rotY=0,rotZ=0)=>{const object=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat);object.position.set(x,y,z);object.rotation.set(rotX,rotY,rotZ);object.castShadow=true;object.receiveShadow=true;parent.add(object);return object};
+createEnvironment({scene,box,material,SITE_CONFIG,sceneCenterX,lastBessX,highVoltageX,materials});
+const equipment=createEquipment({scene,box,cylinder,material,SITE_CONFIG,materials,highVoltageX,transformerX,lowVoltageX,firstBessX,bessStep,lastBessX,sceneCenterX});
+const update=bindControls({camera,controls,renderer,clickable:equipment.clickable,labels:equipment.labels,sceneCenterX});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+document.getElementById('loading').style.display='none';
+function animate(){requestAnimationFrame(animate);update();controls.update();renderer.render(scene,camera)}animate();
